@@ -1,0 +1,73 @@
+{
+    "Chichewa-English": [
+        {"Chichewa": "Mtedza ukugulitsidwa pabwanji?",
+        "English": "Whats the price of groundnuts?"},
+        
+        {"Chichewa": "Chimanga chikupezeka kuti?",
+        "English": "Where can I find maize?"},
+        
+        {"Chichewa": "Ndikuti nyemba zikutchipa?",
+        "English": "Where can I find beans at cheap price?"},
+        
+        {"Chichewa": "Chimanga chili pabwanji pano?",
+        "English": "Whats the price of maize now?"},
+        
+        {"Chichewa": "Ku Dowa chimanga chili pa bwanji?",
+        "English": "Whats the price of maize in Dowa?"},
+        
+        {"Chichewa": "Kodi ndi boma liti anakolola chimanga chambiri pakati pa Lilongwe kapena Kasungu?",
+        "English": "Which district produced more maize: Lilongwe or Kasungu?"},
+        
+        {"Chichewa": "Kodi chimanga chili pa bwanji ku Rumphi?",
+        "English": "How much is maize per Kg in Rumphi?"},
+        
+        {"Chichewa": "Mpunga ukugulitsidwa ndalama zingati ku Lilongwe?",
+        "English": "Whats the price of rice in Lilongwe?"},
+        
+        {"Chichewa": "Mtedza otchipa ukupezeka mboma liti?",
+        "English": "Which district has the cheap price for groundnuts?"},
+        
+        {"Chichewa": "Chimanga chambiri chikupezeka kuti?",
+        "English": "Where can I find maize?"},
+        
+        {"Chichewa": "Ndi boma liti komwe anakolola chimanga chambiri?",
+        "English": "Which district harvested large quantities of maize?"},
+        
+        {"Chichewa":"Ndi mbeu zanji anakolola bwino ku Rumphi?",
+        "English": "Which crops produced the most yields in Rumphi?"},
+        
+        {"Chichewa": "Soya ali pabwanji?",
+        "English": "Whats the price of soya?"},
+        
+        {"Chichewa": "Mtedza otchipa ndingaupeze kuti?",
+        "English": "Where can I find groundnuts at reasonable price?"},
+
+        {"Chichewa": "Mpunga ukugulitsidwa pa mtengo wanji?",
+        "English": "How much is rice per Kg?"}
+    ],
+    "English-Chichewa": [
+      {"English": "Where can I find cheap maize", 
+      "Chichewa": "Chimanga chotchipa chikupezeka kuti"},
+      
+      {"English": "Which district is hit the worst by hunger and lack of food?", 
+      "Chichewa": "Ndi boma liti koma njala yabvuta kwambiri"},
+      
+      {"English": "Where is maize most expensive", 
+      "Chichewa": "Ndi boma liti lomwe chimanga chikudula kwambiri"},
+      
+      {"English": "The districts with the most maize are", 
+      "Chichewa": "Ma boma amene anakolola chimanga chambiri ndi awa"},
+      
+      {"English": "Lilongwe with a total yield of 444,440", 
+      "Chichewa": "Ku Lilongwe kumene anakolola chimanga chokwana 444,440"},
+
+      {"English": "Lilongwe with a total yield of 444,440 tonnes", 
+      "Chichewa": "Ku Lilongwe kumene anakolola chimanga chokwana 444,440 tonnes"},
+
+      {"English": "The current food security situation in Balaka is anticipated to be challenging, with 45 percent of the population affected by acute food insecurity.", 
+      "Chichewa": "Mabvuto azakudya akula kwambiri mboma la Balaka, komwe anthu okwanira 45 percent alibe chakudya chokwana"},
+
+      {"English": "You can find maize in Lilongwe, Kasungu, Dowa, Mzimba, and Mchinji",
+      "Chichewa": "Chimanga chikupezeka kumaboma awa  Lilongwe, Kasungu, Dowa, Mzimba, ndi Mchinji"}
+    ]
+  }
