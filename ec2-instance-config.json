@@ -1,0 +1,59 @@
+{
+  "MaxCount": 1,
+  "MinCount": 1,
+  "ImageId": "ami-04a81a99f5ec58529",
+  "InstanceType": "t2.medium",
+  "KeyName": "nyasa",
+  "EbsOptimized": false,
+  "BlockDeviceMappings": [
+    {
+      "DeviceName": "/dev/sda1",
+      "Ebs": {
+        "Encrypted": false,
+        "DeleteOnTermination": true,
+        "Iops": 3000,
+        "SnapshotId": "snap-0e23f460473beecc6",
+        "VolumeSize": 50,
+        "VolumeType": "gp3",
+        "Throughput": 125
+      }
+    }
+  ],
+  "NetworkInterfaces": [
+    {
+      "SubnetId": "subnet-01e0e08f7dc5854ff",
+      "AssociatePublicIpAddress": true,
+      "DeviceIndex": 0,
+      "Groups": [
+        "sg-063af839be9169f9f"
+      ]
+    }
+  ],
+  "TagSpecifications": [
+    {
+      "ResourceType": "instance",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "food-sec-bot"
+        }
+      ]
+    }
+  ],
+  "IamInstanceProfile": {
+    "Arn": "arn:aws:iam::478645750798:instance-profile/EMR_EC2_DefaultRole"
+  },
+  "InstanceMarketOptions": {
+    "MarketType": "spot"
+  },
+  "MetadataOptions": {
+    "HttpEndpoint": "enabled",
+    "HttpPutResponseHopLimit": 2,
+    "HttpTokens": "required"
+  },
+  "PrivateDnsNameOptions": {
+    "HostnameType": "ip-name",
+    "EnableResourceNameDnsARecord": true,
+    "EnableResourceNameDnsAAAARecord": false
+  }
+}

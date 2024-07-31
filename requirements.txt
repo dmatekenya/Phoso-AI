@@ -16,5 +16,10 @@ tiktoken
 uvicorn
 uvloop
 python-decouple
+psycopg2
+twilio
+torch
+transformers
 pypdf
+pdfplumber
 

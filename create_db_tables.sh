@@ -1,6 +1,6 @@
 #!/bin/bash
 DB_NAME="food_security"
-DB_USER="dunstanmatekenya"
+DB_USER="dmatekenya"
 DB_PASS="Khama2012"
 DB_HOST="localhost"
 DB_PORT="5432"

@@ -1,20 +1,18 @@
 # Third-party imports
-from langdetect import detect
-from langchain_openai import OpenAI, ChatOpenAI
+import os
+from decouple import config
+from langchain_openai import ChatOpenAI
 from langchain.chains import LLMChain
 from fastapi import FastAPI, Form, Depends, Request, HTTPException, BackgroundTasks
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 from twilio.rest import Client
 from twilio.http.http_client import TwilioHttpClient
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 from twilio.twiml.messaging_response import MessagingResponse
 from fastapi.responses import PlainTextResponse
-from decouple import config
 from datetime import datetime
-import time 
 import json
+import tracemalloc
 
 # Find your Account SID and Auth Token at twilio.com/console
 # and set the environment variables. See http://twil.io/secure
@@ -134,7 +132,7 @@ def handle_incoming_message(original_incoming_msg, sender):
     print("Question=", original_incoming_msg)
     # Implement your chatbot logic here
     msg_lan = detect_language(original_incoming_msg)
-    print(msg_lan)
+    
     if msg_lan != "en":
         incoming_msg = translate_text_openai(original_incoming_msg, "Chichewa", "English")
         print("Translated Question=", incoming_msg)
@@ -142,9 +140,11 @@ def handle_incoming_message(original_incoming_msg, sender):
         incoming_msg = original_incoming_msg
     
     use_sql = simple_router(incoming_msg)
+    
     if use_sql:
         response_text = run_sql_chain(incoming_msg, lan=msg_lan)
     else:
+        print("Checkin if we are going into RAG .....")
         response_text = run_rag_query(incoming_msg)
     
     # Translate text to Chichewa if incoming message was in Chichewa
@@ -177,13 +177,12 @@ def process_user_request(incoming_msg, sender):
     except Exception as e:
         print(f"Error in background task: {e}")
 
-
 @app.post("/message")
 async def sms_reply(request: Request, Body: str = Form(...), From: str = Form(...)):
     try:
         incoming_msg = Body
         whatsapp_number = From
-
+    
         # Handle the incoming message and send a response
         response_text = handle_incoming_message(incoming_msg, whatsapp_number)
 

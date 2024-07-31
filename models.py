@@ -9,7 +9,7 @@ url = URL.create(
     username=config("DB_USER"),
     password=config("DB_PASSWORD"),
     host="localhost",
-    database="chatbots",
+    database="foodsec_chats",
     port=5432
 )
 

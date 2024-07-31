@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import List
+from decouple import config
 
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -12,7 +13,7 @@ from time import sleep
 
 EMBED_DELAY = 0.02  # 20 milliseconds
 USE_HUGGINGFACE_EMBEDDINGS = True
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+OPENAI_API_KEY = config("OPENAI_API_KEY")
 
 
 # This is to get the Streamlit app to use less CPU while embedding documents into Chromadb.
