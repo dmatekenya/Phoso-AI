@@ -1,7 +1,7 @@
 {
   "MaxCount": 1,
   "MinCount": 1,
-  "ImageId": "ami-04a81a99f5ec58529",
+  "ImageId": "ami-0f7c4a792e3fb63c8",
   "InstanceType": "t2.medium",
   "KeyName": "nyasa",
   "EbsOptimized": false,
@@ -12,8 +12,8 @@
         "Encrypted": false,
         "DeleteOnTermination": true,
         "Iops": 3000,
-        "SnapshotId": "snap-0e23f460473beecc6",
-        "VolumeSize": 50,
+        "SnapshotId": "snap-051c36b1052b55e61",
+        "VolumeSize": 100,
         "VolumeType": "gp3",
         "Throughput": 125
       }
@@ -29,6 +29,9 @@
       ]
     }
   ],
+  "CapacityReservationSpecification": {
+    "CapacityReservationPreference": "open"
+  },
   "TagSpecifications": [
     {
       "ResourceType": "instance",
@@ -40,16 +43,8 @@
       ]
     }
   ],
-  "IamInstanceProfile": {
-    "Arn": "arn:aws:iam::478645750798:instance-profile/EMR_EC2_DefaultRole"
-  },
   "InstanceMarketOptions": {
     "MarketType": "spot"
-  },
-  "MetadataOptions": {
-    "HttpEndpoint": "enabled",
-    "HttpPutResponseHopLimit": 2,
-    "HttpTokens": "required"
   },
   "PrivateDnsNameOptions": {
     "HostnameType": "ip-name",
