@@ -32,7 +32,7 @@
         "query": "WITH max_yield_district AS (\n    SELECT district\n    FROM production\n    WHERE crop = 'Rice'\n    ORDER BY yield DESC\n    LIMIT 1)\nSELECT district\nFROM max_yield_district;"
     },
     {
-        "input": "Which crops did well in Rumphi",
+        "input": "Which crops did well in Rumphi?",
         "query": "SELECT crop FROM production WHERE district = 'Rumphi' ORDER BY yield DESC LIMIT 5;"
     },
     {
@@ -44,7 +44,7 @@
         "query": "WITH max_yield_district AS (\n        SELECT district\n        FROM production\n        WHERE crop = 'Soy beans'\n        ORDER BY yield DESC\n        LIMIT 5)\n    SELECT district\n    FROM max_yield_district;"
     },
     {
-        "input": "Which district produced more maize: Lilongwe or Kasungu",
+        "input": "Which district produced more maize: Lilongwe or Kasungu?",
         "query": "WITH district_yields AS (\n    SELECT district, SUM(yield) AS total_yield\n    FROM production\n    WHERE crop = 'Maize' AND district IN ('Lilongwe', 'Kasungu')\n    GROUP BY district\n        )\n        SELECT district\n        FROM district_yields\n        ORDER BY total_yield DESC\n        LIMIT 1;"
     },
     {
@@ -52,15 +52,15 @@
         "query": "WITH latest_date AS (\n    SELECT MAX(collection_date) AS max_date\n    FROM commodity_prices\n    WHERE commodity = 'Maize' AND market = 'Dowa'\n)\nSELECT price\nFROM commodity_prices\nWHERE commodity = 'Maize' AND market = 'Dowa' AND collection_date = (SELECT max_date FROM latest_date);"
     },
     {
-        "input": "Districts with cheap beans",
+        "input": "Districts with cheap beans?",
         "query": "SELECT market, price\n            FROM commodity_prices\n            WHERE commodity = 'Beans' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Beans')\n            ORDER BY price ASC\n            LIMIT 5;"
     },
     {
-        "input": "Where can i get cheap groundnuts",
+        "input": "Where can i get cheap groundnuts?",
         "query": "SELECT market, price\n            FROM commodity_prices\n            WHERE commodity = 'Groundnuts' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Groundnuts')\n            ORDER BY price ASC\n            LIMIT 5;"
     },
     {
-        "input": "current price of Maize in the country",
+        "input": "current price of Maize in the country?",
         "query": "-- Query to retrieve the average price of a given commodity on the most recent collection_date\n        SELECT AVG(Price) as average_price\n        FROM commodity_prices\n        WHERE Commodity = 'Maize' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Maize');"
     },
 

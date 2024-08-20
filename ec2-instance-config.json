@@ -2,7 +2,7 @@
   "MaxCount": 1,
   "MinCount": 1,
   "ImageId": "ami-0f7c4a792e3fb63c8",
-  "InstanceType": "t2.medium",
+  "InstanceType": "t2.large",
   "KeyName": "nyasa",
   "EbsOptimized": false,
   "BlockDeviceMappings": [
@@ -29,8 +29,8 @@
       ]
     }
   ],
-  "CapacityReservationSpecification": {
-    "CapacityReservationPreference": "open"
+  "CreditSpecification": {
+    "CpuCredits": "standard"
   },
   "TagSpecifications": [
     {
@@ -43,8 +43,11 @@
       ]
     }
   ],
-  "InstanceMarketOptions": {
-    "MarketType": "spot"
+  "IamInstanceProfile": {
+    "Arn": "arn:aws:iam::478645750798:instance-profile/AWS-S3"
+  },
+  "MetadataOptions": {
+    "HttpPutResponseHopLimit": 2
   },
   "PrivateDnsNameOptions": {
     "HostnameType": "ip-name",

@@ -12,7 +12,7 @@ and so these steps are run manually
         - ```sudo apt install unzip```
         - ```curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o     "awscliv2.zip" unzip awscliv2.zip sudo ./aws/install```
 
-    - Download ```ec2-setup.sh``` script from s3 onto instance:```aws s3 cp s3://chichewa-ai/phoso-ai-files/ .```
+    - Download ```ec2-setup.sh``` script from s3 onto instance:```aws s3 cp s3://chichewa-ai/phoso-ai-files/ec2-setup.sh .```
 
     - Make the script executable: ```chmod +x ec2-setup.sh```
 

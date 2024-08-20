@@ -54,7 +54,6 @@ echo "host    all             all             0.0.0.0/0               md5" | sud
 # Restart PostgreSQL to apply the changes
 sudo systemctl restart postgresql
 
-
 # =================================
 # SETIP PYTHON ENVIRONMENT
 # =================================
@@ -94,17 +93,18 @@ sudo systemctl enable fastapi
 # Set up Nginx as a reverse proxy
 # Manually replace server name
 # Set up Nginx as a reverse proxy
-sudo bash -c "cat > /etc/nginx/sites-available/fastapi <<EOT
+# Set up Nginx as a reverse proxy
+sudo bash -c "cat > /etc/nginx/sites-available/fastapi <<'EOT'
 server {
     listen 80;
     server_name $IP_ADDRESS;
 
     location / {
         proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host \\$host;
-        proxy_set_header X-Real-IP \\$remote_addr;
-        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \\$scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOT"

@@ -1,0 +1,134 @@
+,input,query
+0,Kodi chimanga chili pa bwanji ku Rumphi,"SELECT district, AVG(price) as average_price FROM commodity_prices WHERE commodity = 'Maize' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE commodity = 'Maize') AND district = 'Rumphi' GROUP BY district;"
+1,Mpunga ukugulitsidwa ndalama zingati ku Lilongwe,"SELECT district, AVG(price) as average_price FROM commodity_prices WHERE commodity = 'Rice' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE commodity = 'Rice') AND district = 'Lilongwe' GROUP BY district;"
+2,Mtedza otchipitsitsa ukupezeka mboma liti?,"WITH latest_date AS (
+    SELECT MAX(collection_date) AS max_date
+    FROM commodity_prices
+    WHERE commodity = 'Groundnuts'
+),
+average_prices AS (
+    SELECT district, AVG(price) AS average_price
+    FROM commodity_prices
+    WHERE commodity = 'Groundnuts' AND collection_date = (SELECT max_date FROM latest_date)
+    GROUP BY district
+)
+SELECT district, average_price
+FROM average_prices
+ORDER BY average_price ASC
+LIMIT 1;"
+3,Ndingakagule kuti chimanga chotchipa?,"WITH latest_date AS (
+    SELECT MAX(collection_date) AS max_date
+    FROM commodity_prices
+    WHERE commodity = 'Maize'
+),
+average_prices AS (
+    SELECT market, AVG(price) AS average_price
+    FROM commodity_prices
+    WHERE commodity = 'Maize' AND collection_date = (SELECT max_date FROM latest_date)
+    GROUP BY market
+)
+SELECT market, average_price
+FROM average_prices
+ORDER BY average_price ASC
+LIMIT 5;"
+4,ndikuti ndingakagulitse soya kuti ndipange ndalama zambiri?,"WITH latest_date AS (
+    SELECT MAX(collection_date) AS max_date
+    FROM commodity_prices
+    WHERE commodity = 'Soya beans'
+),
+average_prices AS (
+    SELECT market, AVG(price) AS average_price
+    FROM commodity_prices
+    WHERE commodity = 'Soya beans' AND collection_date = (SELECT max_date FROM latest_date)
+    GROUP BY market
+)
+SELECT market, average_price
+FROM average_prices
+ORDER BY average_price DESC
+LIMIT 1;"
+5,Nyemba zili pa bwanji?,"WITH latest_date AS (
+    SELECT MAX(collection_date) AS max_date
+    FROM commodity_prices
+    WHERE commodity = 'Beans'
+)
+SELECT AVG(price) AS average_price
+FROM commodity_prices
+WHERE commodity = 'Beans' AND collection_date = (SELECT max_date FROM latest_date);"
+6,Ndi boma liti komwe anakolola chimanga chambiri,"WITH max_yield_district AS (
+    SELECT district
+    FROM production
+    WHERE crop = 'Maize'
+    ORDER BY yield DESC
+    LIMIT 1
+)
+SELECT district
+FROM max_yield_district;"
+7,Ndikuti ndingapeze mpunga wambiri?,"WITH max_yield_district AS (
+    SELECT district
+    FROM production
+    WHERE crop = 'Rice'
+    ORDER BY yield DESC
+    LIMIT 1)
+SELECT district
+FROM max_yield_district;"
+8,Ndi mbeu zanji anakolola bwino ku Rumphi,SELECT crop FROM production WHERE district = 'Rumphi' ORDER BY yield DESC LIMIT 5;
+9,Ndi ma boma ati kumene anakolola fodya wambiri?,"WITH max_yield_district AS (
+    SELECT district
+    FROM production
+    WHERE crop = 'Tobacco'
+    ORDER BY yield DESC
+    LIMIT 5)
+SELECT district
+FROM max_yield_district;"
+10,soya ndingamupeze kuti?,"WITH max_yield_district AS (
+        SELECT district
+        FROM production
+        WHERE crop = 'Soy beans'
+        ORDER BY yield DESC
+        LIMIT 5)
+    SELECT district
+    FROM max_yield_district;"
+11,ndikuti kukupezeka nyemba zambiri?,"WITH max_yield_district AS (
+        SELECT district
+        FROM production
+        WHERE crop = 'Beans'
+        ORDER BY yield DESC
+        LIMIT 5)
+    SELECT district
+    FROM max_yield_district;"
+12,Kodi ndi boma liti anakolola chimanga chambiri pakati pa Lilongwe kapena Kasungu?,"WITH district_yields AS (
+    SELECT district, SUM(yield) AS total_yield
+    FROM production
+    WHERE crop = 'Maize' AND district IN ('Lilongwe', 'Kasungu')
+    GROUP BY district
+        )
+        SELECT district
+        FROM district_yields
+        ORDER BY total_yield DESC
+        LIMIT 1;"
+13,Ku Dowa chimanga chili pa bwanji?,"WITH latest_date AS (
+    SELECT MAX(collection_date) AS max_date
+    FROM commodity_prices
+    WHERE commodity = 'Maize' AND market = 'Dowa'
+)
+SELECT price
+FROM commodity_prices
+WHERE commodity = 'Maize' AND market = 'Dowa' AND collection_date = (SELECT max_date FROM latest_date);"
+14,Ndikuti nyemba zikutchipa,"SELECT market, price
+            FROM commodity_prices
+            WHERE commodity = 'Beans' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Beans')
+            ORDER BY price ASC
+            LIMIT 5;"
+15,Ndingagule kuti mtedza pa mtengo wabwino,"SELECT market, price
+            FROM commodity_prices
+            WHERE commodity = 'Groundnuts' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Groundnuts')
+            ORDER BY price ASC
+            LIMIT 5;"
+16,Chimanga chili pabwanji pano?,"-- Query to retrieve the average price of a given commodity on the most recent collection_date
+        SELECT AVG(Price) as average_price
+        FROM commodity_prices
+        WHERE Commodity = 'Maize' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Maize');"
+17,Mtedza ukugulitsidwa pabwanji?,"-- Query to retrieve the average price of a given commodity on the most recent collection_date
+        SELECT AVG(Price) as average_price
+        FROM commodity_prices
+        WHERE Commodity = 'Groundnuts' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE Commodity = 'Groundnuts');"
