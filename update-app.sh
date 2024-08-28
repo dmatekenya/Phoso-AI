@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set variables
-PEM_FILE="/Users/dunstanmatekenya/Google\Drive/My\Drive/AWS-Utils/nyasa.pem"
+PEM_FILE="/Users/dunstanmatekenya/Google Drive/My Drive/AWS-Utils/nyasa.pem"
 IP_ADDRESS_AND_USER="ubuntu@ec2-3-220-232-45.compute-1.amazonaws.com"
 REPO_DIR="/home/ubuntu/Phoso-AI/"
 
@@ -16,7 +16,7 @@ git push origin main
 # CONNECT TO INSTANCE AND UPDATE APP
 # ====================================
 # Connect to instance
-ssh -i $PEM_FILE $IP_ADDRESS_AND_USER << EOF
+ssh -i "$PEM_FILE" $IP_ADDRESS_AND_USER << EOF
 
 # Navigate to the application directory
 cd $REPO_DIR
