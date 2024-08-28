@@ -231,7 +231,8 @@ def translate_text_openai(text, source_language, target_language, llm=None):
 
     # Initialize the chat-based model
     if not llm:
-        llm = ChatOpenAI(temperature=0.7, model="gpt-4o")
+        llm = ChatOpenAI(temperature=0.7, model="gpt-4o", 
+                         openai_api_key=OPENAI_API_KEY)
 
     # Create the LLMChain for translation
     translation_chain = LLMChain(llm=llm, prompt=prompt_template)
