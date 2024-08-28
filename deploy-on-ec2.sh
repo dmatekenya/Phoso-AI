@@ -27,7 +27,7 @@ aws s3 cp ~/Google\ Drive/My\ Drive/phosoAI-whatsapp-app-aws/ec2-setup.sh s3://c
 # CREATE SPOT INSTANCE
 # =========================
 # Create instance 
-aws ec2 run-instances --cli-input-json file://ec2-instance-config2.json --profile dmatekenya
+aws ec2 run-instances --cli-input-json file://ec2-instance-config.json --profile dmatekenya --user-data file://ec2-setup.sh
 
 # ==================================
 # CONNECT TO INSTANCE AND RUN SETUP 
