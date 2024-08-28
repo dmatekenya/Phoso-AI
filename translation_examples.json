@@ -68,6 +68,13 @@
       "Chichewa": "Mabvuto azakudya akula kwambiri mboma la Balaka, komwe anthu okwanira 45 percent alibe chakudya chokwana"},
 
       {"English": "You can find maize in Lilongwe, Kasungu, Dowa, Mzimba, and Mchinji",
-      "Chichewa": "Chimanga chikupezeka kumaboma awa  Lilongwe, Kasungu, Dowa, Mzimba, ndi Mchinji"}
+      "Chichewa": "Chimanga chikupezeka kumaboma awa  Lilongwe, Kasungu, Dowa, Mzimba, ndi Mchinji"},
+
+      {"English": "Beans",
+      "Chichewa": "Nyemba"},
+
+      {"English": "Groundnuts",
+      "Chichewa": "Mtedza"}
+
     ]
   }

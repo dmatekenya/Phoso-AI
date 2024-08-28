@@ -3,9 +3,8 @@ import os
 from typing import List
 from decouple import config
 
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings, OpenAIEmbeddings
 from local_loader import get_document_text
 from remote_loader import download_file
 from splitter import split_documents

@@ -14,6 +14,21 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 
+from utils import detect_language_with_langchain, translate_text_openai
+
+import warnings
+warnings.filterwarnings("ignore")
+
+import logging
+
+# Set the logging level for the `httpx` logger to WARNING to suppress INFO logs
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
+# You can also suppress other loggers if necessary
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("langchain").setLevel(logging.WARNING)
+logging.getLogger("langsmith.client").setLevel(logging.ERROR)
+
 
 OPENAI_API_KEY = config("OPENAI_API_KEY")
 DB_USER = config('DB_USER')
@@ -25,7 +40,36 @@ DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NA
 FILE_SQL_EXAMPLES_EN = "./sql_examples_en.json"
 FILE_SQL_EXAMPLES_NY = "./sql_examples_ny.json"
 USE_BEST_MATCHING_COLUMNS = False
+TRANSLATE_TO_ENGLISH = True
+OPEN_AI_MODELS = {'translation': "gpt-4o", 
+                  'sql-generation': "gpt-3.5-turbo","default": "gpt-4o"}
+USE_HUGGINGFACE = False
 
+def clean_and_parse_json(response_text):
+    """
+    Cleans the LLM response to ensure it contains valid JSON and parses it.
+
+    Parameters
+    ----------
+    response_text : str
+        The raw text response from the LLM.
+
+    Returns
+    -------
+    dict
+        The parsed JSON as a dictionary.
+    """
+    try:
+        # Strip any padding or extra text
+        start_idx = response_text.find("{")
+        end_idx = response_text.rfind("}") + 1
+        clean_json_text = response_text[start_idx:end_idx]
+        
+        # Parse and return the JSON
+        return json.loads(clean_json_text)
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        return None
 
 def create_db_object_with_metadata():
     # Create the SQLAlchemy engine
@@ -103,7 +147,7 @@ def find_best_table_prompt(user_query, tables, columns,
     User Query:
     {user_query}
 
-    Provide the output in the following JSON format:
+    Provide only the output in the following JSON format without adding any additional text:
     {{
         "best_matching_table": {{
             "table_name": "<best_table_name>",
@@ -331,13 +375,10 @@ def create_sql_prompt(examples, best_matching_table, columns_metadata,
     
     return sql_prompt
 
-def create_answer_chain(llm):
+def create_answer_chain_english(llm):
     """
-    Creates a chain for generating answers to user questions based on SQL query results using a language model (LLM).
-
-    This function constructs a prompt that instructs the LLM to generate answers derived strictly from the provided SQL result. 
-    The generated answer will include appropriate units, specify the time period if relevant, and clearly indicate if the result 
-    does not fully answer the question.
+    Creates a chain for generating answers to user questions based on data retrieved by the system using a language model (LLM).
+    The answer will be provided in the specified language.
 
     Parameters
     ----------
@@ -347,37 +388,34 @@ def create_answer_chain(llm):
     Returns
     -------
     answer_chain : Chain
-        A chain object that, when invoked, processes the user question and SQL result to generate a concise and accurate answer.
+        A chain object that, when invoked, processes the user question and available data to generate a concise and accurate answer.
 
     Example
     -------
     answer_chain = create_answer_chain(llm)
-    response = answer_chain.invoke({"question": "What is the price of Maize?", "result": "Price: 60"})
-    print(response)
+    response = answer_chain.invoke({"question": "What is the price of maize?", "result": "Price: 60"})
+    print(response)  # Expected to provide the answer without mentioning SQL.
     """
     answer_prompt = PromptTemplate.from_template(
         """
-        You are a knowledgeable assistant. Given the following user question and SQL result, answer the question accurately and concisely.
+        You are a knowledgeable assistant. Given the following user question and the data provided, answer the question accurately and concisely.
 
         IMPORTANT:
-        1. Your answer MUST be derived directly from the SQL Result provided. Do not add any extra information, assumptions, or context beyond what is given.
+        1. Your answer MUST be derived directly from the information provided. Do not add any extra information, assumptions, or context beyond what is given.
         2. Always include appropriate units in your answer (e.g., Kwacha per kg, liters, etc.).
         3. Specify the time period or date if the question implies or explicitly asks for it.
-        4. If the SQL Result does not contain enough information to fully answer the question, clearly state that the answer is based on the available data and provide any relevant context from the result.
-
-        Example:
-        - Question: "What's the price of Maize?" SQL Result: "Price: 60" Answer: "The most recent price of Maize is 60 Kwacha per kg."
-        - Question: "What's the price of Maize for May 2024?" SQL Result: "Price: 60" Answer: "The price of Maize in May 2024 is 60 Kwacha per kg."
+        4. If the information provided does not contain enough details to fully answer the question, clearly state that the answer is based on the available data and provide any relevant context.
 
         Question: {question}
-        SQL Result: {result}
+        Information: {result}
         Answer:
         """
     )
-
+    
     return answer_prompt | llm | StrOutputParser()
 
-def run_sql_chain_v2(user_query, best_table_info, columns_info, best_columns=None, llm=None):
+def run_sql_chain_v2(user_query, best_table_info, columns_info, best_columns=None, 
+                     language="English"):
     """
     Executes an SQL query generation chain using a language model (LLM) based on the user query, 
     best matching table, and columns information.
@@ -440,10 +478,19 @@ def run_sql_chain_v2(user_query, best_table_info, columns_info, best_columns=Non
     db = SQLDatabase(engine=engine, ignore_tables=['table_metadata', 'column_metadata'])
 
     execute_query = QuerySQLDataBaseTool(db=db)
+
+    if USE_HUGGINGFACE:
+        pass
+    else:
+        model_name = OPEN_AI_MODELS['sql-generation']
+        llm = ChatOpenAI(model=model_name, temperature=0, 
+                         openai_api_key=OPENAI_API_KEY)
+    
     write_query = create_sql_query_chain(llm, db, sql_prompt)
 
     # Create the answer chain
-    answer_chain = create_answer_chain(llm)
+    if TRANSLATE_TO_ENGLISH:
+        answer_chain = create_answer_chain_english(llm)
 
     # Put everything together
     master_chain = (
@@ -533,12 +580,25 @@ def process_sql_query(user_question, use_huggingface=False):
     )
     print(output)
     """
+    # Detect language of question
+    quest_lan = detect_language_with_langchain(text=user_question)
+    print("Language for question: ", quest_lan)
+
+    # If user question is in Chichewa, translate it to English
+    if quest_lan.lower() != "english":
+        user_question = translate_text_openai(user_question, 
+                                          source_language="Chichewa", 
+                                          target_language="English")
+        print("Translated Question:==>", user_question)
+
     # Initialize LLM
     # To Do: add Hugging Face LLM
     if use_huggingface:
         pass  # Hugging Face LLM initialization can be added here
     else:
-        openai_llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
+        model_name = OPEN_AI_MODELS['default']
+        openai_llm = ChatOpenAI(model=model_name, temperature=0, 
+                                openai_api_key=OPENAI_API_KEY)
    
     # Retrieve the metadata info (tables and columns)
     tables, columns = connect_to_database()
@@ -546,14 +606,14 @@ def process_sql_query(user_question, use_huggingface=False):
     # Chain 1: Find the Best Table
     best_table_chain, context = find_best_table_prompt(user_question, tables, columns, llm=openai_llm)
     best_table_output_str = best_table_chain.run(**context)
-
+    
     # Convert the string output to a dictionary
     try:
         best_table_output = json.loads(best_table_output_str)['best_matching_table']
     except json.JSONDecodeError:
-        print("Error: The output is not valid JSON.")
-        best_table_output = None
-
+        print("Error: The output is not valid JSON, lets clean it up")
+        best_table_output = clean_and_parse_json(best_table_output_str)['best_matching_table']
+        
     # Chain 2: Find Relevant Columns
     best_columns_chain, context = find_best_columns_prompt(user_question, best_table_output, columns, llm=openai_llm)
     best_columns_output = best_columns_chain.run(**context)
@@ -564,21 +624,35 @@ def process_sql_query(user_question, use_huggingface=False):
         best_table_info=best_table_output, 
         columns_info=columns, 
         best_columns=best_columns_output, 
-        llm=openai_llm
+        language=quest_lan
     )
+
+    # Translate back to English if need be
+    # If we choose to use this approach and the question wasnt in English
+    if TRANSLATE_TO_ENGLISH and quest_lan.lower() != "english":
+        print("English Output:", output)
+        translated_response = translate_text_openai(output, 
+                                                    source_language="English",
+                                                    target_language="Chichewa")
+        return translated_response
     
     return output
 
 def main():
-    questions_en = ["Where can I find the cheapest maize?",
+    questions = ["What is the price of Maize in Rumphi",
+                 "Where can I find the cheapest maize?",
                     "Which district harvested the most beans?",
                     "How much is Maize in Zomba?",
                     "Which district produced more Tobacco, Mchinji or Kasungu?",
-                    "Where can I get bananas?"]
-    for q in questions_en:
+                    "Where can I get bananas?", "Kodi chimanga chotchipa ndingachipeze kuti?",
+                    "Ndi boma liti komwe anakolola nyemba zambiri?",
+                    "Ku Zomba chimanga akugulitsa pa bwanji?",
+                    "Kodi ndi boma liti anakolola chimanga chambiri pakati pa Lilongwe kapena Kasungu?",
+                    "Ndikuti ndingapeze mpunga wambiri?"]
+    for q in questions:
         print("\n--- QUESTION: ", q)
         output = process_sql_query(q)
-        print('OUTPUT TYPE==>', output)
+        print('RESPONSE==>', output)
 
 if __name__ == '__main__':
     # this is to quite parallel tokenizers warning.

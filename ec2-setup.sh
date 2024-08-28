@@ -41,6 +41,7 @@ sudo -i -u postgres bash << EOF
 psql -c "ALTER USER postgres PASSWORD 'Khama2012';"
 psql -c "CREATE DATABASE food_security;"
 psql -c "CREATE USER dmatekenya WITH PASSWORD 'Khama2012';"
+psql -c "ALTER ROLE dmatekenya WITH SUPERUSER;"
 psql -c "GRANT ALL PRIVILEGES ON DATABASE food_security TO dmatekenya;"
 psql -c "CREATE DATABASE foodsec_chats;"
 psql -c "GRANT ALL PRIVILEGES ON DATABASE foodsec_chats TO dmatekenya;"

@@ -1,0 +1,71 @@
+{
+  "MaxCount": 1,
+  "MinCount": 1,
+  "ImageId": "ami-0f7c4a792e3fb63c8",
+  "InstanceType": "t2.large",
+  "KeyName": "nyasa",
+  "EbsOptimized": false,
+  "BlockDeviceMappings": [
+    {
+      "DeviceName": "/dev/sda1",
+      "Ebs": {
+        "Encrypted": false,
+        "DeleteOnTermination": true,
+        "Iops": 3000,
+        "SnapshotId": "snap-051c36b1052b55e61",
+        "VolumeSize": 100,
+        "VolumeType": "gp3",
+        "Throughput": 125
+      }
+    }
+  ],
+  "NetworkInterfaces": [
+    {
+      "SubnetId": "subnet-01e0e08f7dc5854ff",
+      "AssociatePublicIpAddress": true,
+      "DeviceIndex": 0,
+      "Groups": [
+        "sg-063af839be9169f9f"
+      ]
+    }
+  ],
+  "CreditSpecification": {
+    "CpuCredits": "standard"
+  },
+  "TagSpecifications": [
+    {
+      "ResourceType": "instance",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "food-sec-bot"
+        }
+      ]
+    }
+  ],
+  "IamInstanceProfile": {
+    "Arn": "arn:aws:iam::478645750798:instance-profile/AWS-S3"
+  },
+  "MetadataOptions": {
+    "HttpPutResponseHopLimit": 2
+  },
+  "PrivateDnsNameOptions": {
+    "HostnameType": "ip-name",
+    "EnableResourceNameDnsARecord": true,
+    "EnableResourceNameDnsAAAARecord": false
+  },
+  "UserData": {
+    "Fn::Base64": {
+      "Fn::Sub": [
+        "#!/bin/bash\n" +
+        "aws s3 cp s3://${S3BucketName}/${ScriptKey} /home/ec2-user/myscript.sh\n" +
+        "chmod +x /home/ec2-user/myscript.sh\n" +
+        "/home/ec2-user/myscript.sh\n",
+        {
+          "S3BucketName": "chichewa-ai",
+          "ScriptKey": "/phoso-ai-files/ec2-setup.sh"
+        }
+      ]
+    }
+  }
+}

@@ -9,10 +9,10 @@ from twilio.http.http_client import TwilioHttpClient
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 from twilio.twiml.messaging_response import MessagingResponse
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from datetime import datetime
 import json
-import tracemalloc
+import asyncio
 
 # Find your Account SID and Auth Token at twilio.com/console
 # and set the environment variables. See http://twil.io/secure
@@ -29,63 +29,63 @@ TWILIO_NUMBER = config('TWILIO_NUMBER')
 
 # Internal imports
 from models import Conversation, SessionLocal
-from utils import logger, run_rag_query, detect_language
-from sql_chain import run_sql_chain
+from utils import *
+from sql_chain import process_sql_query, run_sql_chain
 import logging
 
+# Load the users when the app starts
+WELCOMED_USERS = load_welcomed_users()
+print("WELCOMED_USERS==>", WELCOMED_USERS)
+
+# Initialize app
 app = FastAPI()
 
-def format_translation_examples(examples_file, source_language, target_language):
-    examples = load_examples(examples_file)
-    key = f"{source_language}-{target_language}"
-    if key in examples:
-        return "\n".join([f"{source_language}: {ex[source_language]}\n{target_language}: {ex[target_language]}" 
-                          for ex in examples[key]])
-    return ""
-
-def load_examples(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return json.load(file)
-
-# Prepare Translation Variables
-TRANSLATION_EXAMPLES = load_examples(FILE_TRANSLATION_EXAMPLES)
-
-CHAT_MODEL = ChatOpenAI(temperature=0.7, openai_api_key=OPENAI_API_KEY, 
-                            model="gpt-3.5-turbo")
-# Create a system message with examples
-TRANSLATION_SYSTEM_TEMPLATE = """You are a professional translator. Your task is to translate {source_language} to {target_language}.
-    Here are a few examples:
-
-    {examples}
-
-    Now, translate the following text:"""
-
-TRANSLATION_SYSTEM_MESSAGE_PROMPT = SystemMessagePromptTemplate.from_template(TRANSLATION_SYSTEM_TEMPLATE)
-
-
-def translate_text_openai(text, source_language, target_language):
-    # Create a human message for the actual translation request
-    human_template = "{text}"
-    human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-
-    # Combine the prompts
-    chat_prompt = ChatPromptTemplate.from_messages([TRANSLATION_SYSTEM_MESSAGE_PROMPT, human_message_prompt])
-
-    # Create an LLMChain for translation
-    translation_chain = LLMChain(llm=CHAT_MODEL, prompt=chat_prompt)
+def generate_welcome_message(user_message, llm=None):
     
-    # Function to translate text
-    formated_examples = format_translation_examples(FILE_TRANSLATION_EXAMPLES, 
-                                                    source_language, 
-                                    target_language)
-    return translation_chain.run({
-            "source_language": source_language,
-            "target_language": target_language,
-            "examples": formated_examples,
-            "text": text
-        })
+    # Define the prompt template for the welcome message
+    welcome_message_prompt = PromptTemplate.from_template(
+    """
+    You are a helpful assistant who interacts with users in their preferred language. 
+    Your task is to greet the user in their language and briefly inform them about the type of information you can provide.
 
-# Dependency
+    Specifically, you provide the following types of information:
+    - Prices for food and other agricultural commodities (e.g., Maize, rice, soy beans).
+    - Agricultural production details (e.g., Maize, Tobacco).
+    - The situation of food security (e.g., how many people are lacking food).
+    - All information is specific to Malawi.
+
+    Greet the user and let them know that they can ask questions about these topics. 
+    
+    Here are some examples:
+    
+    Example 1:
+    Text: "Hello, how are you?"
+    Welcome Message: "Welcome! I can help you with information about food prices, agricultural production, and food security in Malawi. For example, you can ask: 'What is the current price of maize?' or 'How much maize was produced last year?How can I assist you today?'"
+    
+    Example 2:
+    Text: "Moni, muli bwanji?"
+    Welcome Message: "Takulandirani! Ndikhoza kukuthandizani ndi zambiri zokhudzana ndi mitengo ya chakudya, zokolola, zaulimi komanso zokhudzana ndi zanjala mmene ilili ku Malawi. Mwachitsanzo mutha kufunsa kuti: "Kodi chimanga chili pa bwanji ku Kasungu?"
+    'Kodi ndikuti kunakololedwa mtedza wambiri?' kapena 'Kodi ndikuti kunakololedwa mtedza wambiri?'. Kodi ndingakuthandizeni bwanji lero?"
+    
+
+    Now, based on the user's input, generate a suitable welcome message in the same language.
+
+    Text: "{text_to_detect}"
+    Welcome Message:
+    Example Questions:
+    1. 
+    2. 
+    """)
+
+    # Initialize the chat-based model (e.g., GPT-3.5-turbo)
+    if not llm:
+        llm = ChatOpenAI(temperature=0.7)
+
+    # Create the LLMChain with the prompt
+    welcome_message_chain = welcome_message_prompt | llm | StrOutputParser()
+
+    return welcome_message_chain.invoke({"text_to_detect": user_message})
+
 def get_db():
     try:
         db = SessionLocal()
@@ -127,25 +127,61 @@ def simple_router(incoming_msg):
             return use_sql
     return use_sql
     
-def handle_incoming_message(original_incoming_msg, sender):
+def handle_incoming_message(original_incoming_msg, user_number, sql_only=True):
+    # Send dummy message
+    send_whatsapp_message("TESTING SENDING MESSAGE....", user_number)
     
-    print("Question=", original_incoming_msg)
-    # Implement your chatbot logic here
-    msg_lan = detect_language(original_incoming_msg)
-    
-    if msg_lan != "en":
-        incoming_msg = translate_text_openai(original_incoming_msg, "Chichewa", "English")
-        print("Translated Question=", incoming_msg)
+    # Check if the user has already been welcomed
+    if user_number not in WELCOMED_USERS:
+        # Send a welcome message
+        welcome_message = generate_welcome_message(user_message=original_incoming_msg)
+        print("WELCOME MESSAGE==>", welcome_message)
+        send_whatsapp_message(body=welcome_message, to=user_number)
+        
+        # Mark this user as welcomed
+        WELCOMED_USERS[user_number] = True
+        
+        # Save the updated list of welcomed users to S3
+        save_welcomed_users(WELCOMED_USERS)
+
+        # Respond to their question
+        if sql_only:
+            print("Question=>", original_incoming_msg)
+            response_text = process_sql_query(original_incoming_msg)
+            print("LLM-response=>", original_incoming_msg)
+            # Send a response using the Twilio Client
+            send_whatsapp_message(response_text, user_number)
+            return response_text
+        else:
+            pass
     else:
-        incoming_msg = original_incoming_msg
+        # Respond to the user's message
+        if sql_only:
+            print("Question=>", original_incoming_msg)
+            response_text = process_sql_query(original_incoming_msg)
+            print("LLM-response=>", response_text)
+            # Send a response using the Twilio Client
+            send_whatsapp_message(response_text, user_number)
+            return response_text
+        else:
+            pass
+    # print("Question=", original_incoming_msg)
+    # # Implement your chatbot logic here
+    # msg_lan = detect_language(original_incoming_msg)
     
-    use_sql = simple_router(incoming_msg)
+    # if msg_lan != "en":
+    #     incoming_msg = translate_text_openai(original_incoming_msg, "Chichewa", "English")
+    #     print("Translated Question=", incoming_msg)
+    # else:
+    #     incoming_msg = original_incoming_msg
     
-    if use_sql:
-        response_text = run_sql_chain(incoming_msg, lan=msg_lan)
-    else:
-        print("Checkin if we are going into RAG .....")
-        response_text = run_rag_query(incoming_msg)
+    # use_sql = simple_router(incoming_msg)
+    
+    # if use_sql:
+    #     response_text = run_sql_chain(incoming_msg, lan=msg_lan)
+    # else:
+    #     print("Checkin if we are going into RAG .....")
+    #     response_text = run_rag_query(incoming_msg)
     
     # Translate text to Chichewa if incoming message was in Chichewa
     # print("English Response=>", response_text)
@@ -163,10 +199,6 @@ def handle_incoming_message(original_incoming_msg, sender):
     # time_taken = (end - start).total_seconds()
     # print("This took {} seconds".format(time_taken))
     # print("-"*50)
-    
-    # Send a response using the Twilio Client
-    send_whatsapp_message(response_text, sender)
-    return response_text
 
 def process_user_request(incoming_msg, sender):
     try:
@@ -182,21 +214,41 @@ async def sms_reply(request: Request, Body: str = Form(...), From: str = Form(..
     try:
         incoming_msg = Body
         whatsapp_number = From
-    
-        # Handle the incoming message and send a response
-        response_text = handle_incoming_message(incoming_msg, whatsapp_number)
 
-        return PlainTextResponse(response_text)
+        # Create a Twilio MessagingResponse object
+        response = MessagingResponse()
+
+        # Handle the incoming message and generate a response
+        response_text = process_sql_query(incoming_msg)
+        # response_text = handle_incoming_message(incoming_msg, whatsapp_number)
+        response.message(response_text)
+
+        # Check if the user has already been welcomed
+        if  whatsapp_number not in WELCOMED_USERS:
+            print("In new user code .....")
+            # Send a welcome message
+            welcome_message = generate_welcome_message(user_message=incoming_msg)
+            
+            # First message: Welcome or acknowledgment
+            response.message(welcome_message)
+
+            # Mark this user as welcomed
+            WELCOMED_USERS[ whatsapp_number] = True
+            
+            # Save the updated list of welcomed users to S3
+            save_welcomed_users(WELCOMED_USERS)
+        
+        # Return the Twilio response as XML
+        return Response(content=str(response), media_type="application/xml")
     except Exception as e:
-        logger.error(f"Error sending message to {whatsapp_number}: {e}")
+        logger.error(f"Error sending messages to {whatsapp_number}: {e}")
         raise HTTPException(status_code=500, detail="Error processing message")
-
 
 @app.post("/fallback")
 async def fallback(request: Request, Body: str = Form(...), From: str = Form(...)):
     try:
         # Message to send when there is a problem
-        detected_lan = detect_language(Body)
+        detected_lan = detect_language_with_langchain(text=Body, llm=None)
         if detected_lan == "sw" or detected_lan  == "ny":
             fallback_message = "Pepani, koma sindingathe kuyankha funso lanu panopa chifukwa chabvuto lina. Kodi pali funso lina lomwe mulinalo?"
         else:
@@ -207,6 +259,3 @@ async def fallback(request: Request, Body: str = Form(...), From: str = Form(...
     except Exception as e:
         print(f"Error handling /fallback endpoint: {e}")
         raise HTTPException(status_code=500, detail="Error processing fallback message")
-
-
-
