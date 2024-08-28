@@ -6,8 +6,6 @@ from langchain_openai import ChatOpenAI
 from langchain_community.llms import HuggingFaceHub
 from langchain_community.chat_models.huggingface import ChatHuggingFace
 
-from dotenv import load_dotenv
-
 
 MISTRAL_ID = "mistralai/Mistral-7B-Instruct-v0.1"
 ZEPHYR_ID = "HuggingFaceH4/zephyr-7b-beta"
@@ -47,8 +45,6 @@ def basic_chain(model=None, prompt=None):
 
 
 def main():
-    load_dotenv()
-
     prompt = ChatPromptTemplate.from_template("Tell me the most noteworthy books by the author {author}")
     chain = basic_chain(prompt=prompt) | StrOutputParser()
 

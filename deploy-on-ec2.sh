@@ -1,8 +1,13 @@
 #!/bin/bash
-
 # =========================
 # PUSH CHANGES TO GITHUB
 # =========================
+# update requirements 
+source .venv/bin/activate
+pip freeze > requirements.txt
+deactivate
+
+# Push to GitHub
 git add .
 git commit -m "Updated code"
 git push origin main

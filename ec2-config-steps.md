@@ -2,9 +2,10 @@
 ## Manual Configuration
 In this scenario, the setup script is not uploaded while launching the instance
 and so these steps are run manually
-1. Make any changes to the code and the setup scripts
-    ```deploy-on-ec2.sh```
-    ```ec2-setup.sh```
+1. Navigate to the app directory
+3. Make any changes to the code and the setup scripts:
+    - ```deploy-on-ec2.sh```
+    - ```ec2-setup.sh```
 2. Run the ```deploy-on-ec2.sh``` script
 3. Connect to EC2 instance and follpw the steps below.
 
