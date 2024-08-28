@@ -212,6 +212,7 @@ def process_user_request(incoming_msg, sender):
 @app.post("/message")
 async def sms_reply(request: Request, Body: str = Form(...), From: str = Form(...)):
     try:
+        print("JUST TESTING IF NEW CODE HAS BEEN UPDATED ...")
         incoming_msg = Body
         whatsapp_number = From
 

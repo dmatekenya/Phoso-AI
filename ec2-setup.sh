@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # =============================
 # PRELIMINARY SETUP 
 # =============================
@@ -23,8 +22,8 @@ sudo apt install -y python3 python3-venv python3-pip git libpq-dev python3-dev b
 git clone https://github.com/dmatekenya/Phoso-AI.git
 
 # Copy data folders and .env file from S3 to working folder
-aws s3 cp --recursive s3://chichewa-ai/phoso-ai-files/data $APP_DIR
-aws s3 cp --recursive s3://chichewa-ai/phoso-ai-files/store $APP_DIR
+aws s3 cp --recursive s3://chichewa-ai/phoso-ai-files/data $APP_DIR/data
+aws s3 cp --recursive s3://chichewa-ai/phoso-ai-files/store $APP_DIR/store
 aws s3 cp s3://chichewa-ai/phoso-ai-files/.env $APP_DIR
 
 
@@ -34,21 +33,35 @@ aws s3 cp s3://chichewa-ai/phoso-ai-files/.env $APP_DIR
 # Install postgre-SQL
 sudo apt install -y postgresql postgresql-contrib
 
-# Determine the PostgreSQL version and configuration directory
+# Set variables
 PG_VERSION=$(psql -V | awk '{print $3}' | awk -F. '{print $1}')
 PG_CONF_DIR="/etc/postgresql/$PG_VERSION/main"
+POSTGRES_USER="postgres"
+POSTGRES_PASSWORD="Khama2012"
+DB_USER="dmatekenya"
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_PASSWORD="Khama2012"
+DB_MAIN="food_security"
+DB_CONVERSATIONS="foodsec_chats"
+SQL_FILE="/home/ubuntu/Phoso-AI/create_psql_tables.sql"
 
-# Switch to the postgres user and set up the database
-sudo -i -u postgres bash << EOF
-psql -c "ALTER USER postgres PASSWORD 'Khama2012';"
-psql -c "CREATE DATABASE food_security;"
-psql -c "CREATE USER dmatekenya WITH PASSWORD 'Khama2012';"
-psql -c "ALTER ROLE dmatekenya WITH SUPERUSER;"
-psql -c "GRANT ALL PRIVILEGES ON DATABASE food_security TO dmatekenya;"
-psql -c "CREATE DATABASE foodsec_chats;"
-psql -c "GRANT ALL PRIVILEGES ON DATABASE foodsec_chats TO dmatekenya;"
-psql -c "ALTER SCHEMA public OWNER TO dmatekenya;"
+# Switch to the postgres user and set up the database using the variables
+sudo -i -u $POSTGRES_USER bash << EOF
+psql -c "ALTER USER $POSTGRES_USER PASSWORD '$POSTGRES_PASSWORD';"
+psql -c "CREATE DATABASE $DB_MAIN;"
+psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
+psql -c "ALTER ROLE $DB_USER WITH SUPERUSER;"
+psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_MAIN TO $DB_USER;"
+psql -c "CREATE DATABASE $DB_CONVERSATIONS;"
+psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_CONVERSATIONS TO $DB_USER;"
+psql -c "ALTER SCHEMA public OWNER TO $DB_USER;"
 EOF
+
+# Run the SQL script to create tables in the food_security database
+export PGPASSWORD=$DB_PASSWORD
+psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_MAIN -f $SQL_FILE
+unset PGPASSWORD
 
 # Configure PostgreSQL to allow remote connections
 sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" $PG_CONF_DIR/postgresql.conf

@@ -35,7 +35,7 @@ CREATE TABLE commodity_prices (
 
 -- Load data into table from CSV file
 -- Update and change path to CSV file accordingly 
-\COPY commodity_prices(ADD_Name,EPA_Name,District,Market,Month_Name,Yr,Commodity,Price,Collection_Date) FROM '/Users/dunstanmatekenya/Library/CloudStorage/GoogleDrive-dmatekenya@gmail.com/My Drive/Chichewa-ASR/phosoAI-whatsapp-app/data/tables/prices.csv' DELIMITER ',' CSV HEADER;
+\COPY commodity_prices(ADD_Name,EPA_Name,District,Market,Month_Name,Yr,Commodity,Price,Collection_Date) FROM '/home/ubuntu/Phoso-AI/data/tables/prices.csv' DELIMITER ',' CSV HEADER;
 
 -- Add metadata for this table 
 INSERT INTO table_metadata (table_name, description)
@@ -55,7 +55,6 @@ VALUES
     ('commodity_prices', 'Price', 'This is the average price of the commodity. This price is in Kwach per Kg')
     ;
 
-
 -- Create table production
 CREATE TABLE production (
     District VARCHAR(25),
@@ -66,7 +65,7 @@ CREATE TABLE production (
 
 -- Load data into table from CSV file
 -- Update and change path to CSV file accordingly 
-\COPY production(District,Crop,Yield,Season) FROM '/Users/dunstanmatekenya/Library/CloudStorage/GoogleDrive-dmatekenya@gmail.com/My Drive/Chichewa-ASR/phosoAI-whatsapp-app/data/tables/production.csv' DELIMITER ',' CSV HEADER;
+\COPY production(District,Crop,Yield,Season) FROM '/home/ubuntu/Phoso-AI/data/tables/production.csv' DELIMITER ',' CSV HEADER;
 
 
 -- Add metadata for this table 
@@ -95,7 +94,7 @@ CREATE TABLE food_insecurity (
 
 -- Load data into table from CSV file
 -- Update and change path to CSV file accordingly 
-\COPY food_insecurity(district,analyzed_population,time_period,percentage_population,insecurity_level,insecurity_desc_short,insecurity_desc_long) FROM '/Users/dunstanmatekenya/Library/CloudStorage/GoogleDrive-dmatekenya@gmail.com/My Drive/Chichewa-ASR/phosoAI-whatsapp-app/data/tables/food-insecurity.csv' DELIMITER ',' CSV HEADER;
+\COPY food_insecurity(district,analyzed_population,time_period,percentage_population,insecurity_level,insecurity_desc_short,insecurity_desc_long) FROM '/home/ubuntu/Phoso-AI/data/tables/food-insecurity.csv' DELIMITER ',' CSV HEADER;
 
 
 -- Add metadata for this table 
