@@ -67,5 +67,25 @@
     {
         "input": "Where can I find Maize?",
         "query": "WITH max_yield_district AS (\n    SELECT district\n    FROM production\n    WHERE crop = 'Maize'\n    ORDER BY yield DESC\n    LIMIT 5)\nSELECT district\nFROM max_yield_district;"
+    },
+
+    {
+        "input": "How much is a bag of 50kg of Maize in Rumphi?",
+        "query": "SELECT district, AVG(price) * 50 as price_per_50kg_bag FROM commodity_prices WHERE commodity = 'Maize' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE commodity = 'Maize') AND district = 'Rumphi' GROUP BY district;"
+    },
+    
+    {
+        "input": "How much is a bag of Maize in Nsanje?",
+        "query": "SELECT district, AVG(price) * 50 as price_per_50kg_bag FROM commodity_prices WHERE commodity = 'Maize' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE commodity = 'Maize') AND district = 'Nsanje' GROUP BY district;"
+    },
+
+    {
+        "input": "Price of a 100 Kg bag of beans in Lilongwe?",
+        "query": "SELECT district, AVG(price) * 100 as price_per_100kg_bag FROM commodity_prices WHERE commodity = 'Beans' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE commodity = 'Beans') AND district = 'Lilongwe' GROUP BY district;"
+    },
+    
+    {
+        "input": "How much is a bag of Maize?",
+        "query": "SELECT AVG(price) * 50 as price_per_50kg_bag FROM commodity_prices WHERE commodity = 'Maize' AND collection_date = (SELECT MAX(collection_date) FROM commodity_prices WHERE commodity = 'Maize');"
     }
 ]

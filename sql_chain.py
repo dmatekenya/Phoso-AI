@@ -375,13 +375,16 @@ def create_sql_prompt(examples, best_matching_table, columns_metadata,
             "Unless otherwise specified, do not return more than {top_k} rows.\n\n"
             "Here is the relevant table information:\n{table_info}\n\n"
             f"{recent_data_instruction}\n\n"
-            "Below are a number of examples of questions and their corresponding SQL queries."
+            "Below are a number of examples of questions and their corresponding SQL queries. "
+            "Please use these examples as a reference when generating the SQL query for the user's input."
         ),
-        suffix="User input: {input}\nSQL query: ",
+        suffix=(
+            "User input: {input}\n"
+            "Based on the above examples, generate the SQL query below:\n"
+            "SQL query: "
+        ),
         input_variables=["input", "table_info", "top_k"],
     )
-    
-    
     return sql_prompt
 
 def create_answer_chain_english(llm):
