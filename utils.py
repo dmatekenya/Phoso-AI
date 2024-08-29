@@ -222,7 +222,7 @@ def translate_text_openai(text, source_language, target_language, llm=None):
         Examples:
         {example_prompts}
 
-        Now, translate the following:
+        Now, translate the following text, and provide only the translation without any additional text or language labels:
 
         {source_language}: "{{text}}"
         {target_language}:
