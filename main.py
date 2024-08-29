@@ -35,7 +35,6 @@ import logging
 
 # Load the users when the app starts
 WELCOMED_USERS = load_welcomed_users()
-print("WELCOMED_USERS==>", WELCOMED_USERS)
 
 # Initialize app
 app = FastAPI()
@@ -79,7 +78,7 @@ def generate_welcome_message(user_message, llm=None):
 
     # Initialize the chat-based model (e.g., GPT-3.5-turbo)
     if not llm:
-        llm = ChatOpenAI(temperature=0.7)
+        llm = ChatOpenAI(temperature=0.7, openai_api_key=OPENAI_API_KEY)
 
     # Create the LLMChain with the prompt
     welcome_message_chain = welcome_message_prompt | llm | StrOutputParser()
@@ -220,12 +219,12 @@ async def sms_reply(request: Request, Body: str = Form(...), From: str = Form(..
 
         # Handle the incoming message and generate a response
         response_text = process_sql_query(incoming_msg)
+        
         # response_text = handle_incoming_message(incoming_msg, whatsapp_number)
         response.message(response_text)
 
         # Check if the user has already been welcomed
         if  whatsapp_number not in WELCOMED_USERS:
-            print("In new user code .....")
             # Send a welcome message
             welcome_message = generate_welcome_message(user_message=incoming_msg)
             
@@ -248,11 +247,12 @@ async def sms_reply(request: Request, Body: str = Form(...), From: str = Form(..
 async def fallback(request: Request, Body: str = Form(...), From: str = Form(...)):
     try:
         # Message to send when there is a problem
-        detected_lan = detect_language_with_langchain(text=Body, llm=None)
+        detected_lan = detect_language_with_langchain(text=Body)
         if detected_lan == "sw" or detected_lan  == "ny":
-            fallback_message = "Pepani, koma sindingathe kuyankha funso lanu panopa chifukwa chabvuto lina. Kodi pali funso lina lomwe mulinalo?"
+            fallback_message = """Pepani, koma sindingathe kuyankha funso lanu pakanali pano chifukwa chabvuto linalake. 
+            Yesaninso kufunsa funsolo mosiyana, kapena yesani funso lina."""
         else:
-            fallback_message = "I'm sorry, but I can't generate an answer for your query right now. Is there anything else I can assist you with?"
+            fallback_message = "Apologies, I'm currently unable to generate an answer for your query. Please try rephrasing your question or ask a different one."
     
         send_whatsapp_message(fallback_message, From)
         return PlainTextResponse(fallback_message)
