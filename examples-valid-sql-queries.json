@@ -1,0 +1,46 @@
+[
+    {
+        "query": "What is the price of maize?",
+        "classification": "Valid"
+    },
+    {
+        "query": "How much maize was produced last year?",
+        "classification": "Valid"
+    },
+    {
+        "query": "Where can I find food?",
+        "classification": "Valid"
+    },
+    {
+        "query": "Tell me a joke.",
+        "classification": "Invalid"
+    },
+    {
+        "query": "Hello",
+        "classification": "Invalid"
+    },
+    {
+        "query": "Bot",
+        "classification": "Invalid"
+    },
+    {
+        "query": "How much is rice?",
+        "classification": "Valid"
+    },
+
+    {
+        "query": "Where can I buy cheap beans",
+        "classification": "Valid"
+    },
+
+    {
+        "query": "How can I grow Maize",
+        "classification": "Invalid"
+    },
+
+    {
+        "query": "Food",
+        "classification": "Invalid"
+    }
+
+]

@@ -14,7 +14,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 
-from utils import detect_language_with_langchain, translate_text_openai
+from utils import (detect_language_with_langchain, 
+translate_text_openai, classify_query_llm)
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -44,6 +45,14 @@ TRANSLATE_TO_ENGLISH = True
 OPEN_AI_MODELS = {'translation': "gpt-4o", 
                   'sql-generation': "gpt-3.5-turbo","default": "gpt-4o"}
 USE_HUGGINGFACE = False
+FALLBACK_MESSAGE_EN = """Sorry, I’m currently unable to generate an answer for your query. 
+Please try rephrasing your question or ask something else. 
+I can assist with questions related to food prices, agricultural produce, 
+and food security in Malawi. For instance, you could ask, 
+'What’s the price of maize?"""
+FALLBACK_MESSAGE_NY = """Pepani, koma sindingathe kuyankha funso lanu pakanali pano chifukwa chabvuto linalake. 
+            Yesaninso kufunsa funsolo mosiyana, kapena yesani funso lina. Mongokumbutsa, 
+            mutha kufunsa kuti "Chimanga chili pa bwanji ku Mchinji?"""
 
 def clean_and_parse_json(response_text):
     """
@@ -374,7 +383,6 @@ def create_sql_prompt(examples, best_matching_table, columns_metadata,
     
     
     return sql_prompt
-
 def create_answer_chain_english(llm):
     """
     Creates a chain for generating answers to user questions based on data retrieved by the system using a language model (LLM).
@@ -405,6 +413,7 @@ def create_answer_chain_english(llm):
         2. Always include appropriate units in your answer (e.g., Kwacha per kg, liters, etc.).
         3. Specify the time period or date if the question implies or explicitly asks for it.
         4. If the information provided does not contain enough details to fully answer the question, clearly state that the answer is based on the available data and provide any relevant context.
+        5. Do NOT mention anything related to SQL, PostgreSQL, errors, or technical issues. If the data provided is insufficient, simply state that you cannot retrieve the information at the moment and suggest trying a different question.
 
         Question: {question}
         Information: {result}
@@ -414,7 +423,7 @@ def create_answer_chain_english(llm):
     
     return answer_prompt | llm | StrOutputParser()
 
-def run_sql_chain_v2(user_query, best_table_info, columns_info, best_columns=None, 
+def run_sql_chain(user_query, best_table_info, columns_info, best_columns=None, 
                      language="English"):
     """
     Executes an SQL query generation chain using a language model (LLM) based on the user query, 
@@ -454,102 +463,65 @@ def run_sql_chain_v2(user_query, best_table_info, columns_info, best_columns=Non
     )
     print(response)
     """
-    # Load examples and create prompts
-    examples = load_sql_examples(file_path=FILE_SQL_EXAMPLES_EN)
-    
-    # Create SQL Query
-    if USE_BEST_MATCHING_COLUMNS and best_columns:
-        sql_prompt = create_sql_prompt(
-            examples=examples, 
-            best_matching_table=best_table_info, 
-            columns_metadata=best_columns, 
-            use_best_matching_columns=True
+    try:
+        # Load examples and create prompts
+        examples = load_sql_examples(file_path=FILE_SQL_EXAMPLES_EN)
+        
+        # Create SQL Query
+        if USE_BEST_MATCHING_COLUMNS and best_columns:
+            sql_prompt = create_sql_prompt(
+                examples=examples, 
+                best_matching_table=best_table_info, 
+                columns_metadata=best_columns, 
+                use_best_matching_columns=True
+            )
+        else:
+            sql_prompt = create_sql_prompt(
+                examples=examples, 
+                best_matching_table=best_table_info, 
+                columns_metadata=columns_info
+            )
+
+        # Initialize LLM and other components
+        best_table = best_table_info['table_name']
+        engine = create_engine(DATABASE_URL)
+        db = SQLDatabase(engine=engine, ignore_tables=['table_metadata', 'column_metadata'])
+
+        execute_query = QuerySQLDataBaseTool(db=db)
+
+        if USE_HUGGINGFACE:
+            pass
+        else:
+            model_name = OPEN_AI_MODELS['sql-generation']
+            llm = ChatOpenAI(model=model_name, temperature=0, 
+                            openai_api_key=OPENAI_API_KEY)
+        
+        write_query = create_sql_query_chain(llm, db, sql_prompt)
+
+        # Create the answer chain
+        if TRANSLATE_TO_ENGLISH:
+            answer_chain = create_answer_chain_english(llm)
+
+        # Put everything together
+        master_chain = (
+            RunnablePassthrough.assign(query=write_query).assign(
+                result=itemgetter("query") | execute_query
+            )
+            | answer_chain
         )
-    else:
-        sql_prompt = create_sql_prompt(
-            examples=examples, 
-            best_matching_table=best_table_info, 
-            columns_metadata=columns_info
-        )
 
-    # Initialize LLM and other components
-    best_table = best_table_info['table_name']
-    engine = create_engine(DATABASE_URL)
-    db = SQLDatabase(engine=engine, ignore_tables=['table_metadata', 'column_metadata'])
+        # Invoke the master chain and return the response
+        response = master_chain.invoke({
+            "question": user_query, 
+            "top_k": 3,
+            "table_info": best_table
+        })
+        return response
+    except Exception as e:
+        # Handle errors by providing a user-friendly fallback response
+        print(e)
+        return FALLBACK_MESSAGE_EN
 
-    execute_query = QuerySQLDataBaseTool(db=db)
-
-    if USE_HUGGINGFACE:
-        pass
-    else:
-        model_name = OPEN_AI_MODELS['sql-generation']
-        llm = ChatOpenAI(model=model_name, temperature=0, 
-                         openai_api_key=OPENAI_API_KEY)
-    
-    write_query = create_sql_query_chain(llm, db, sql_prompt)
-
-    # Create the answer chain
-    if TRANSLATE_TO_ENGLISH:
-        answer_chain = create_answer_chain_english(llm)
-
-    # Put everything together
-    master_chain = (
-        RunnablePassthrough.assign(query=write_query).assign(
-            result=itemgetter("query") | execute_query
-        )
-        | answer_chain
-    )
-
-    # Invoke the master chain and return the response
-    response = master_chain.invoke({
-        "question": user_query, 
-        "top_k": 3,
-        "table_info": best_table
-    })
-    return response
-
-def run_sql_chain(user_question, lan="en"):
-    # Load examples
-    examples = load_sql_examples(file_path=FILE_SQL_EXAMPLES_EN)
-
-    # Create FewShot Prompt
-    example_prompt = PromptTemplate.from_template("User input: {input}\nSQL query: {query}")
-    sql_prompt = FewShotPromptTemplate(
-        examples=examples,
-        example_prompt=example_prompt,
-        prefix="You are a PostgreSQL expert. Given an input question, create a syntactically correct PostgreSQL query to run. Unless otherwise specificed, do not return more than {top_k} rows.\n\nHere is the relevant table info: {table_info}\n\nBelow are a number of examples of questions and their corresponding SQL queries.",
-        suffix="User input: {input}\nSQL query: ",
-        input_variables=["input", "top_k", "table_info"],
-    )
-
-    # Create SQL Chain and LLM to use
-    db = create_db_object_with_metadata()
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
-    execute_query = QuerySQLDataBaseTool(db=db)
-    write_query = create_sql_query_chain(llm, db, sql_prompt)
-
-    # Create Answer Promopt to help package the response
-    answer_prompt = PromptTemplate.from_template(
-            """Given the following user question and SQL result, answer the user question.
-
-        Question: {question}
-        SQL Result: {result}
-        Answer: """
-    )
-
-    # Create answer chain
-    answer = answer_prompt | llm | StrOutputParser()
-
-    # Put everything together
-    chain = (
-        RunnablePassthrough.assign(query=write_query).assign(
-            result=itemgetter("query") | execute_query
-        )
-        | answer
-    )
-
-    return chain.invoke({"question": "{}".format(user_question)})
- 
 def process_sql_query(user_question, use_huggingface=False):
     """
     Processes a user's question by generating and executing an SQL query using a language model (LLM). 
@@ -580,7 +552,10 @@ def process_sql_query(user_question, use_huggingface=False):
     )
     print(output)
     """
-    # Detect language of question
+    # ====================================
+    # DEAL WITH LANGUAGE ISSUE
+    # ====================================
+    # First, detect language of the query 
     quest_lan = detect_language_with_langchain(text=user_question)
     print("Language for question: ", quest_lan)
 
@@ -591,7 +566,18 @@ def process_sql_query(user_question, use_huggingface=False):
                                           target_language="English")
         print("Translated Question:==>", user_question)
 
-    # Initialize LLM
+    # ==========================================
+    # CHECK IF THIS IS AN SQL-AMENABLE QUESTION
+    # ==========================================
+    # To DO: generate this using LLM so that its context aware 
+    if not classify_query_llm(user_question) and quest_lan == "Chichewa":
+        return FALLBACK_MESSAGE_NY
+    if not classify_query_llm(user_question) and quest_lan == "English":
+        return FALLBACK_MESSAGE_EN
+        
+    # ==========================================
+    # INITIALIZE LLM
+    # ==========================================
     # To Do: add Hugging Face LLM
     if use_huggingface:
         pass  # Hugging Face LLM initialization can be added here
@@ -600,6 +586,10 @@ def process_sql_query(user_question, use_huggingface=False):
         openai_llm = ChatOpenAI(model=model_name, temperature=0, 
                                 openai_api_key=OPENAI_API_KEY)
    
+
+    # ==========================================
+    # RUN ALL CHAINS TO GET RESPONSE
+    # ==========================================
     # Retrieve the metadata info (tables and columns)
     tables, columns = connect_to_database()
 
@@ -619,7 +609,7 @@ def process_sql_query(user_question, use_huggingface=False):
     best_columns_output = best_columns_chain.run(**context)
 
     # Retrieve result 
-    output = run_sql_chain_v2(
+    output = run_sql_chain(
         user_query=user_question, 
         best_table_info=best_table_output, 
         columns_info=columns, 
@@ -627,6 +617,17 @@ def process_sql_query(user_question, use_huggingface=False):
         language=quest_lan
     )
 
+    # ==========================================
+    # POST PROCESS RESPONSE
+    # ==========================================
+    # Check if there are SQL terms or errors embedded in response
+    if "sql" in output.lower() or "error" in output.lower() or "postgresql" in output.lower():
+        # To DO: generate this using LLM so that its context aware 
+        if quest_lan == "Chichewa":
+            return FILE_SQL_EXAMPLES_NY
+        else:
+            return FALLBACK_MESSAGE_EN
+    
     # Translate back to English if need be
     # If we choose to use this approach and the question wasnt in English
     if TRANSLATE_TO_ENGLISH and quest_lan.lower() != "english":

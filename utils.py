@@ -24,7 +24,6 @@ from langchain.memory import ChatMessageHistory
 from langchain.chains import LLMChain
 import openai
 
-
 # Local imports
 from ensemble import ensemble_retriever_from_docs
 from rag_chain import make_rag_chain, get_question
@@ -44,6 +43,7 @@ TWILIO_NUMBER = config('TWILIO_NUMBER')
 USE_TEXT_FILES = True
 USE_HUGGINGFACE_EMBEDDINGS = False
 FILE_TRANSLATION_EXAMPLES = "./translation_examples.json"
+FILE_VALID_QUERY_EXAMPLES = "./examples-valid-sql-queries.json"
 
 # Setup S3 bucket connection
 AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
@@ -60,6 +60,79 @@ USERS_FILE_KEY = 'phoso-ai-files/welcomed_users.json'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+def load_json_file(file_path):
+    """
+    Load data from a JSON file.
+
+    This function reads a JSON file from the specified file path and returns the data. The data can be of any type 
+    (e.g., list, dict) depending on the structure of the JSON file.
+
+    Parameters
+    ----------
+    file_path : str
+        The path to the JSON file.
+
+    Returns
+    -------
+    Any
+        The data loaded from the JSON file, which can be a list, dictionary, or any other valid JSON structure.
+    """
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    return data
+
+def classify_query_llm(user_query, llm=None):
+    """
+    Classify the user query using an LLM based on examples of valid and invalid SQL-generating queries.
+
+    Parameters
+    ----------
+    user_query : str
+        The user's query.
+    examples_file_path : str
+        The path to the JSON file containing classification examples.
+    llm : Any, optional
+        The language model (e.g., ChatGPT, GPT-3.5) to be used for classification. Default is None.
+
+    Returns
+    -------
+    bool
+        True if the query is classified as valid for SQL generation, False otherwise.
+    """
+
+    # Load the examples from the JSON file
+    examples = load_json_file(FILE_VALID_QUERY_EXAMPLES)
+
+    # Construct the prompt
+    example_prompts = "\n".join([f'Query: "{ex["query"]}"\nClassification: {ex["classification"]}' for ex in examples])
+    prompt_template = PromptTemplate.from_template(
+        f"""
+        You are a knowledgeable assistant who can determine whether a query is valid for generating an SQL query or not. 
+        Given the following examples, classify the new query accordingly.
+
+        Examples:
+        {example_prompts}
+
+        Now classify the following query:
+
+        Query: "{{user_query}}"
+        Classification (Valid/Invalid):
+        """
+    )
+
+    # Initialize the LLM if not provided
+    if not llm:
+        llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=OPENAI_API_KEY)
+
+    # Create the LLMChain for classification
+    classification_chain = LLMChain(llm=llm, prompt=prompt_template)
+
+    # Perform the classification
+    result = classification_chain.run({"user_query": user_query})
+
+    # Return True if classified as valid, otherwise False
+    return "Valid" in result
 
 def load_welcomed_users():
     """
