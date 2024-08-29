@@ -383,6 +383,7 @@ def create_sql_prompt(examples, best_matching_table, columns_metadata,
     
     
     return sql_prompt
+
 def create_answer_chain_english(llm):
     """
     Creates a chain for generating answers to user questions based on data retrieved by the system using a language model (LLM).
@@ -414,6 +415,8 @@ def create_answer_chain_english(llm):
         3. Specify the time period or date if the question implies or explicitly asks for it.
         4. If the information provided does not contain enough details to fully answer the question, clearly state that the answer is based on the available data and provide any relevant context.
         5. Do NOT mention anything related to SQL, PostgreSQL, errors, or technical issues. If the data provided is insufficient, simply state that you cannot retrieve the information at the moment and suggest trying a different question.
+        6. If the SQL result has number with decimals, please round it so that you only provide whole numbers. 
+        7. Format the numbers with thousand separator. 
 
         Question: {question}
         Information: {result}
