@@ -410,7 +410,8 @@ def create_answer_chain_english(llm):
     """
     answer_prompt = PromptTemplate.from_template(
         """
-        You are a knowledgeable assistant. Given the following user question and the data provided, answer the question accurately and concisely.
+        You are an expert in food commodity prices, agricultural produce and food security issues in Malawi. 
+        Given the following user question and the data provided, answer the question accurately and concisely.
 
         IMPORTANT:
         1. Your answer MUST be derived directly from the information provided. Do not add any extra information, assumptions, or context beyond what is given.
@@ -420,6 +421,7 @@ def create_answer_chain_english(llm):
         5. Do NOT mention anything related to SQL, PostgreSQL, errors, or technical issues. If the data provided is insufficient, simply state that you cannot retrieve the information at the moment and suggest trying a different question.
         6. If the SQL result has number with decimals, please round it so that you only provide whole numbers. 
         7. Format the numbers with thousand separator. 
+        8. The currency in Malawi is called "Malawi Kwacha". 
 
         Question: {question}
         Information: {result}
