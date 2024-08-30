@@ -1,4 +1,5 @@
 import json
+import datetime
 import psycopg2
 from decouple import config
 from langchain_community.utilities import SQLDatabase
@@ -53,6 +54,61 @@ and food security in Malawi. For instance, you could ask,
 FALLBACK_MESSAGE_NY = """Pepani, koma sindingathe kuyankha funso lanu pakanali pano chifukwa chabvuto linalake. 
             Yesaninso kufunsa funsolo mosiyana, kapena yesani funso lina. Mongokumbutsa, 
             mutha kufunsa kuti "Chimanga chili pa bwanji ku Mchinji?"""
+
+
+def get_latest_date(db, commodity=None):
+    """
+    Retrieves the most recent date from the commodity prices table in the database.
+    
+    If a commodity is specified, it retrieves the latest date for that commodity.
+    If no commodity is specified or if the specified commodity is not found, it retrieves the latest date across all commodities.
+    
+    Parameters
+    ----------
+    db : SQLDatabase
+        The database connection object.
+    commodity : str, optional
+        The name of the commodity to filter by. Default is None.
+
+    Returns
+    -------
+    str
+        The latest date as a string in the format 'YYYY-MM-DD'.
+    """
+    try:
+        if commodity:
+            query = f"""
+            SELECT MAX(collection_date) as latest_date
+            FROM commodity_prices
+            WHERE commodity = '{commodity}';
+            """
+            result = db.run(query)
+            
+            # Evaluate the result string to convert it into a list of tuples
+            result = eval(result)
+
+            # Check if the result contains a date
+            if result and isinstance(result[0][0], datetime.date):
+                return result[0][0].strftime('%Y-%m-%d')
+        
+        # If no commodity is provided or the query failed, retrieve the latest date without filtering by commodity
+        query = """
+        SELECT MAX(collection_date) as latest_date
+        FROM commodity_prices;
+        """
+        result = db.run(query)
+        
+        # Evaluate the result string to convert it into a list of tuples
+        result = eval(result)
+        
+        if result and isinstance(result[0][0], datetime.date):
+            return result[0][0].strftime('%Y-%m-%d')
+        else:
+            raise ValueError("Failed to retrieve the latest date from the database.")
+    
+    except Exception as e:
+        print(f"Error retrieving latest date: {e}")
+        return None
 
 def clean_and_parse_json(response_text):
     """
@@ -423,6 +479,8 @@ def create_answer_chain_english(llm):
         7. Format the numbers with thousand separator. 
         8. The currency in Malawi is called "Malawi Kwacha". 
 
+        Include this phrase in your answer: "Based on the latest data as of {latest_date}."
+
         Question: {question}
         Information: {result}
         Answer:
@@ -472,10 +530,13 @@ def run_sql_chain(user_query, best_table_info, columns_info, best_columns=None,
     print(response)
     """
     try:
-        # Load examples and create prompts
+        # ==========================
+        # CREATE SQL QUERY PROMPT
+        # ===========================
+        # Load sql query examples 
         examples = load_sql_examples(file_path=FILE_SQL_EXAMPLES_EN)
         
-        # Create SQL Query
+        # Create SQL query prompt 
         if USE_BEST_MATCHING_COLUMNS and best_columns:
             sql_prompt = create_sql_prompt(
                 examples=examples, 
@@ -490,13 +551,16 @@ def run_sql_chain(user_query, best_table_info, columns_info, best_columns=None,
                 columns_metadata=columns_info
             )
 
-        # Initialize LLM and other components
-        best_table = best_table_info['table_name']
+        
+        # ====================================
+        # INITIALIZE LLM AND OTHER COMPONENTS
+        # ====================================
+        # Initialize database engine 
         engine = create_engine(DATABASE_URL)
         db = SQLDatabase(engine=engine, ignore_tables=['table_metadata', 'column_metadata'])
-
         execute_query = QuerySQLDataBaseTool(db=db)
 
+        # Initialize LLM
         if USE_HUGGINGFACE:
             pass
         else:
@@ -504,6 +568,7 @@ def run_sql_chain(user_query, best_table_info, columns_info, best_columns=None,
             llm = ChatOpenAI(model=model_name, temperature=0, 
                             openai_api_key=OPENAI_API_KEY)
         
+        # Create query chain 
         write_query = create_sql_query_chain(llm, db, sql_prompt)
 
         # Create the answer chain
@@ -517,12 +582,19 @@ def run_sql_chain(user_query, best_table_info, columns_info, best_columns=None,
             )
             | answer_chain
         )
+        # ====================================
+        # INVOKE CHAINS AND GENERATE OUTPUT
+        # ====================================
+        # Prepare other required inputs into the chain
+        best_table = best_table_info['table_name']
+        latest_date = get_latest_date(db)
 
         # Invoke the master chain and return the response
         response = master_chain.invoke({
             "question": user_query, 
             "top_k": 3,
-            "table_info": best_table
+            "table_info": best_table,
+            "latest_date": latest_date
         })
         return response
     except Exception as e:
