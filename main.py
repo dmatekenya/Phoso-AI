@@ -248,7 +248,7 @@ async def fallback(request: Request, Body: str = Form(...), From: str = Form(...
     try:
         # Message to send when there is a problem
         detected_lan = detect_language_with_langchain(text=Body)
-        if detected_lan == "sw" or detected_lan  == "ny":
+        if detected_lan == "Chichewa":
             fallback_message = """Pepani, koma sindingathe kuyankha funso lanu pakanali pano chifukwa chabvuto linalake. 
             Yesaninso kufunsa funsolo mosiyana, kapena yesani funso lina."""
         else:
